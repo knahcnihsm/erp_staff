@@ -1,9 +1,9 @@
 import React from 'react';
 import { Snackbar as MuiSnackbar, Alert } from '@mui/material';
-import { useAdmission } from '../../context/AdmissionContext';
+import { useApp } from '../../context/AppContext';
 
 export const AppSnackbar: React.FC = () => {
-  const { snackbar, hideSnackbar } = useAdmission();
+  const { snackbar, hideSnackbar } = useApp();
 
   return (
     <MuiSnackbar

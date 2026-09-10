@@ -33,7 +33,7 @@ export const AppCard: React.FC<AppCardProps> = ({ children, sx, ...props }) => {
       }}
       {...props}
     >
-      <CardContent sx={{ padding: '24px', flexGrow: 1, '&:last-child': { paddingBottom: '24px' } }}>
+      <CardContent sx={{ padding: '28px 28px 24px', flexGrow: 1, '&:last-child': { paddingBottom: '24px' } }}>
         {children}
       </CardContent>
     </Card>

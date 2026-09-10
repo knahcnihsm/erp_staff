@@ -5,10 +5,9 @@ import { useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { Footer } from './Footer';
-import { AppBreadcrumb } from './Breadcrumb';
+import { Breadcrumb } from './Breadcrumb';
 import { AppSnackbar } from '../common/Snackbar';
 import { ConfirmDialog } from '../common/ConfirmDialog';
-import { StudentViewModal } from '../student/StudentViewModal';
 import { useThemeContext } from '../../context/ThemeContext';
 
 export const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -64,7 +63,7 @@ export const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }
             overflowX: 'hidden',
           }}
         >
-          <AppBreadcrumb />
+          <Breadcrumb />
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 10 }}
@@ -81,7 +80,6 @@ export const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }
       {/* Global Modals & Notifications */}
       <AppSnackbar />
       <ConfirmDialog />
-      <StudentViewModal />
     </Box>
   );
 };

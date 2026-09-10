@@ -1,98 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
   IconButton,
   Avatar,
-  Menu,
-  MenuItem,
-  Divider,
   Tooltip,
 } from '@mui/material';
-import {
-  Sun,
-  Moon,
-  Settings,
-  User,
-  LogOut,
-  ChevronDown,
-  Menu as MenuIcon,
-} from 'lucide-react';
+import { Sun, Moon, Menu as MenuIcon } from 'lucide-react';
 import { useThemeContext } from '../../context/ThemeContext';
-import { useAdmission } from '../../context/AdmissionContext';
 import { useNavigate } from 'react-router-dom';
-import { profileApi } from '../../api/client';
 
 export const Header: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) => {
   const { mode, toggleTheme } = useThemeContext();
-  const { requestNavigation } = useAdmission();
   const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [adminName, setAdminName] = useState(() => {
-    const savedName = localStorage.getItem('rgcet_admin_name');
-    const savedUser = localStorage.getItem('rgcet_admin_username');
-    if (savedName && savedName.trim() && savedName !== 'ADMIN USER') return savedName;
-    if (savedUser && savedUser.trim() && savedUser !== 'admin') return savedUser;
-    return savedName || 'ADMIN USER';
-  });
-
-  useEffect(() => {
-    // 1. Fetch Admin Profile from Backend on mount
-    profileApi
-      .getProfile()
-      .then((res) => {
-        if (res) {
-          const name = res.adminName || res.username || 'ADMIN USER';
-          setAdminName(name);
-          if (res.adminName) localStorage.setItem('rgcet_admin_name', res.adminName);
-          if (res.username) localStorage.setItem('rgcet_admin_username', res.username);
-        }
-      })
-      .catch(() => {
-        // Fallback to localStorage
-      });
-
-    // 2. Listen for profile updates from Settings page
-    const handleProfileUpdate = () => {
-      const savedName = localStorage.getItem('rgcet_admin_name');
-      const savedUser = localStorage.getItem('rgcet_admin_username');
-      let name = 'ADMIN USER';
-      if (savedName && savedName.trim() && savedName !== 'ADMIN USER') {
-        name = savedName;
-      } else if (savedUser && savedUser.trim() && savedUser !== 'admin') {
-        name = savedUser;
-      } else if (savedName) {
-        name = savedName;
-      }
-      setAdminName(name);
-    };
-    window.addEventListener('rgcet_profile_update', handleProfileUpdate);
-    return () => {
-      window.removeEventListener('rgcet_profile_update', handleProfileUpdate);
-    };
-  }, []);
-
-  const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const navigateToSettings = () => {
-    handleClose();
-    requestNavigation(() => navigate('/settings'));
-  };
-
-  const getInitials = (name: string) => {
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-  };
-
   const isDark = mode === 'dark';
 
   return (
@@ -134,7 +54,7 @@ export const Header: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) 
 
       {/* Left Branding - Logo section with fixed width matching sidebar */}
       <Box
-        onClick={() => requestNavigation(() => navigate('/'))}
+        onClick={() => navigate('/dashboard')}
         sx={{
           width: { xs: 'auto', md: '240px' },
           minWidth: { xs: 0, md: '240px' },
@@ -222,7 +142,7 @@ export const Header: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) 
             textTransform: 'uppercase',
           }}
         >
-          ADMISSION PORTAL
+          STAFF PORTAL
         </Typography>
         <Typography
           sx={{
@@ -237,7 +157,7 @@ export const Header: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) 
         </Typography>
       </Box>
 
-      {/* Right Actions & Admin User Profile */}
+      {/* Right Actions & Staff User Profile */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: '6px', sm: '10px' }, paddingRight: { xs: '10px', sm: '24px' } }}>
         {/* Sun/Moon Toggle */}
         <Box
@@ -290,23 +210,18 @@ export const Header: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) 
           </Tooltip>
         </Box>
 
-        {/* Admin User Profile */}
+        {/* Staff User Profile */}
         <Box
-          onClick={handleProfileClick}
           sx={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            cursor: 'pointer',
+            cursor: 'default',
             padding: '4px 10px',
             borderRadius: '10px',
             backgroundColor: isDark ? '#1E293B' : '#F0F9FF',
             border: `1px solid ${isDark ? '#334155' : '#D6E4F0'}`,
             transition: 'all 200ms ease-in-out',
-            '&:hover': {
-              backgroundColor: isDark ? '#334155' : '#E0F2FE',
-              borderColor: '#1E5EFF',
-            },
           }}
         >
           <Avatar
@@ -319,7 +234,7 @@ export const Header: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) 
               fontSize: '12px',
             }}
           >
-            {getInitials(adminName)}
+            SP
           </Avatar>
           <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
             <Typography
@@ -332,7 +247,7 @@ export const Header: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) 
                 textTransform: 'uppercase',
               }}
             >
-              {adminName}
+              Staff Profile
             </Typography>
             <Typography
               sx={{
@@ -341,39 +256,10 @@ export const Header: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) 
                 lineHeight: 1.2,
               }}
             >
-              Administrator
+              Staff
             </Typography>
           </Box>
-          <ChevronDown size={15} color={isDark ? '#CBD5E1' : '#64748B'} />
         </Box>
-
-        {/* Profile Dropdown Menu */}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleClose}
-          PaperProps={{
-            sx: {
-              borderRadius: '12px',
-              minWidth: '200px',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15)',
-              marginTop: '8px',
-              backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
-              color: isDark ? '#FFFFFF' : '#1E293B',
-            },
-          }}
-        >
-          <MenuItem onClick={navigateToSettings} sx={{ gap: '10px', fontWeight: 600, fontSize: '14px' }}>
-            <Settings size={16} /> Settings
-          </MenuItem>
-          <Divider sx={{ borderColor: isDark ? '#334155' : '#D6E4F0' }} />
-          <MenuItem
-            onClick={handleClose}
-            sx={{ gap: '10px', fontWeight: 600, fontSize: '14px', color: '#DC2626' }}
-          >
-            <LogOut size={16} /> Log Out
-          </MenuItem>
-        </Menu>
       </Box>
     </Box>
   );

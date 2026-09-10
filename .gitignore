@@ -31,3 +31,8 @@ dist-ssr
 
 # Uploaded certificate files (stored on the backend server)
 backend/uploads/
+
+# Python cache
+__pycache__/
+*.pyc
+

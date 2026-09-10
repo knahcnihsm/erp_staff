@@ -7,15 +7,27 @@ import {
   DialogActions,
   Button,
 } from '@mui/material';
-import { useAdmission } from '../../context/AdmissionContext';
+import { useApp } from '../../context/AppContext';
 
 export const ConfirmDialog: React.FC = () => {
-  const { confirmDialog, hideConfirm } = useAdmission();
+  const { confirmDialog, hideConfirm } = useApp();
+
+  const handleCancel = () => {
+    hideConfirm();
+  };
+
+  const handleConfirm = () => {
+    const confirmFn = confirmDialog.onConfirm;
+    hideConfirm();
+    if (confirmFn) {
+      confirmFn();
+    }
+  };
 
   return (
     <Dialog
       open={confirmDialog.open}
-      onClose={hideConfirm}
+      onClose={handleCancel}
       PaperProps={{
         sx: {
           borderRadius: '12px',
@@ -34,7 +46,7 @@ export const ConfirmDialog: React.FC = () => {
       </DialogContent>
       <DialogActions sx={{ padding: '16px 24px' }}>
         <Button
-          onClick={hideConfirm}
+          onClick={handleCancel}
           variant="outlined"
           sx={{
             borderColor: '#D8E4F2',
@@ -45,9 +57,9 @@ export const ConfirmDialog: React.FC = () => {
           {confirmDialog.cancelText || 'Cancel'}
         </Button>
         <Button
-          onClick={confirmDialog.onConfirm}
+          onClick={handleConfirm}
           variant="contained"
-          color="error"
+          color={confirmDialog.confirmColor || 'error'}
           disableElevation
           sx={{ borderRadius: '8px', fontWeight: 600 }}
         >
