@@ -5,7 +5,8 @@ export interface StudentSummary {
   department: string;
   deptShort: string;
   year: number;
-  section: string;
+  semester: number;
+  section: string | null;
   status: 'ACTIVE' | 'ARCHIVED';
 }
 
@@ -33,15 +34,12 @@ export interface SemesterGpa {
   gpaId: number;
   studentId: number;
   semesterNumber: number;
-  academicYear: string;
   semesterGpa: number;
 }
 
-export interface YearCgpa {
+export interface Cgpa {
   cgpaId: number;
   studentId: number;
-  yearNumber: number;
-  academicYear: string;
   cgpa: number;
 }
 
@@ -69,7 +67,7 @@ export interface AttendanceData {
 
 export interface AcademicSummary {
   latestGpa: number;
-  latestCgpa: number;
+  latestCgpa: number | null;
   activeArrears: number;
   clearedArrears: number;
 }
@@ -89,4 +87,38 @@ export interface DashboardSummary {
   activeStudents: number;
   activeArrears: number;
   recentUpdates: RecentUpdate[];
+}
+
+export interface AcademicRecordRow {
+  studentId: number;
+  regNo: string;
+  name: string;
+  semester: number;
+  semesterGpa: number | null;
+  cgpa: number | null;
+}
+
+export interface AcademicRecordUpdate {
+  studentId: number;
+  gpa?: number | null;
+  cgpa?: number | null;
+}
+
+export interface BulkAcademicSaveRequest {
+  semesterNumber: number;
+  records: AcademicRecordUpdate[];
+}
+
+export interface BulkAcademicSaveResponse {
+  gpaRecords: number;
+  cgpaRecords: number;
+}
+
+export interface ActiveArrearRow {
+  studentId: number;
+  regNo: string;
+  name: string;
+  semester: number;
+  activeArrears: number;
+  subjects: string[];
 }

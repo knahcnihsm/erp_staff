@@ -1,8 +1,12 @@
 package com.rgcet.admission.controller;
 
+import com.rgcet.admission.dto.StaffDtos.StaffAcademicRecordRow;
 import com.rgcet.admission.dto.StaffDtos.StaffAcademicSummary;
+import com.rgcet.admission.dto.StaffDtos.StaffActiveArrearsRow;
 import com.rgcet.admission.dto.StaffDtos.StaffArrearRecord;
 import com.rgcet.admission.dto.StaffDtos.StaffArrearRequest;
+import com.rgcet.admission.dto.StaffDtos.StaffBulkAcademicRequest;
+import com.rgcet.admission.dto.StaffDtos.StaffBulkAcademicResponse;
 import com.rgcet.admission.dto.StaffDtos.StaffCgpaRecord;
 import com.rgcet.admission.dto.StaffDtos.StaffCgpaRequest;
 import com.rgcet.admission.dto.StaffDtos.StaffDashboardSummary;
@@ -109,6 +113,21 @@ public class StaffController {
     @GetMapping("/students/{id}/academic-summary")
     public StaffAcademicSummary getAcademicSummary(@PathVariable Long id) {
         return staffService.getAcademicSummary(id);
+    }
+
+    @GetMapping("/active-arrears")
+    public List<StaffActiveArrearsRow> getActiveArrears() {
+        return staffService.getActiveArrears();
+    }
+
+    @GetMapping("/academic-records")
+    public List<StaffAcademicRecordRow> getAcademicRecords(@RequestParam Integer semester) {
+        return staffService.getAcademicRecords(semester);
+    }
+
+    @PostMapping("/academic-records/bulk")
+    public StaffBulkAcademicResponse saveAcademicRecords(@Valid @RequestBody StaffBulkAcademicRequest request) {
+        return staffService.saveAcademicRecords(request);
     }
 
     @GetMapping("/dashboard/summary")

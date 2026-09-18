@@ -71,6 +71,7 @@ export const Dashboard: React.FC = () => {
       icon: Users,
       color: '#0B3D91',
       bg: isDark ? 'rgba(56, 189, 248, 0.12)' : '#F0F9FF',
+      path: '/students',
     },
     {
       label: 'Active Arrears',
@@ -79,6 +80,7 @@ export const Dashboard: React.FC = () => {
       icon: BookX,
       color: '#DC2626',
       bg: isDark ? 'rgba(220, 38, 38, 0.12)' : '#FEF2F2',
+      path: '/active-arrears',
     },
   ];
 
@@ -96,7 +98,7 @@ export const Dashboard: React.FC = () => {
             <AppCard
               key={card.label}
               sx={{ flex: '1 1 240px', minWidth: 240, cursor: 'pointer' }}
-              onClick={() => (card.label === 'Total Students' ? navigate('/students') : undefined)}
+              onClick={() => (card.path ? navigate(card.path) : undefined)}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Box

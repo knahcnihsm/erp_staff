@@ -34,12 +34,6 @@ public class StudentCgpa {
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
 
-    @Column(name = "year_number", nullable = false)
-    private Integer yearNumber;
-
-    @Column(name = "academic_year", nullable = false)
-    private String academicYear;
-
     @Column(name = "cgpa", nullable = false)
     private BigDecimal cgpa;
 

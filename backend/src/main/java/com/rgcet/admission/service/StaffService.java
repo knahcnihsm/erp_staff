@@ -1,9 +1,14 @@
 package com.rgcet.admission.service;
 
 import com.rgcet.admission.common.ResourceNotFoundException;
+import com.rgcet.admission.dto.StaffDtos.StaffAcademicRecordRow;
 import com.rgcet.admission.dto.StaffDtos.StaffAcademicSummary;
+import com.rgcet.admission.dto.StaffDtos.StaffActiveArrearsRow;
 import com.rgcet.admission.dto.StaffDtos.StaffArrearRecord;
 import com.rgcet.admission.dto.StaffDtos.StaffArrearRequest;
+import com.rgcet.admission.dto.StaffDtos.StaffBulkAcademicItem;
+import com.rgcet.admission.dto.StaffDtos.StaffBulkAcademicRequest;
+import com.rgcet.admission.dto.StaffDtos.StaffBulkAcademicResponse;
 import com.rgcet.admission.dto.StaffDtos.StaffCgpaRecord;
 import com.rgcet.admission.dto.StaffDtos.StaffCgpaRequest;
 import com.rgcet.admission.dto.StaffDtos.StaffDashboardSummary;
@@ -34,15 +39,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class StaffService {
-
-    private static final Pattern YEAR_PATTERN = Pattern.compile("(20\\d{2})");
 
     private final StudentRepository studentRepository;
     private final StudentSemesterGpaRepository gpaRepository;
@@ -53,20 +54,171 @@ public class StaffService {
     public List<StaffStudentSummary> listStudents(String search, String department, Integer year,
                                                   String section, String status) {
         List<Student> students = studentRepository.findAll();
-        Map<Long, List<StudentSemesterGpa>> gpaByStudent = gpaRepository.findAll().stream()
-                .collect(Collectors.groupingBy(g -> g.getStudent().getStudentId()));
 
         return students.stream()
-                .map(s -> toSummary(s, gpaByStudent.getOrDefault(s.getStudentId(), List.of())))
+                .map(this::toSummary)
                 .filter(s -> matches(s, search, department, year, section, status))
                 .sorted(Comparator.comparing(StaffStudentSummary::regNo))
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
+    public List<StaffAcademicRecordRow> getAcademicRecords(Integer semester) {
+        if (semester == null || semester < 1 || semester > 8) {
+            throw new IllegalArgumentException("Semester must be between 1 and 8.");
+        }
+        List<Student> students = studentRepository.findAll();
+
+        List<Long> studentIds = students.stream()
+                .map(Student::getStudentId)
+                .collect(Collectors.toList());
+        Map<Long, StudentSemesterGpa> gpas = gpaRepository
+                .findByStudentStudentIdInAndSemesterNumber(studentIds, semester).stream()
+                .collect(Collectors.toMap(g -> g.getStudent().getStudentId(), g -> g, (a, b) -> a));
+        Map<Long, StudentCgpa> cgpas = cgpaRepository.findByStudentStudentIdIn(studentIds).stream()
+                .collect(Collectors.toMap(c -> c.getStudent().getStudentId(), c -> c, (a, b) -> a));
+
+        return students.stream()
+                .map(s -> {
+                    Admission admission = s.getAdmission();
+                    Integer currentSemester = admission == null ? null : admission.getCurrentSemester();
+                    StudentSemesterGpa gpa = gpas.get(s.getStudentId());
+                    StudentCgpa cgpa = cgpas.get(s.getStudentId());
+                    return new StaffAcademicRecordRow(
+                            s.getStudentId(),
+                            regNoOf(s),
+                            s.getStudentName(),
+                            currentSemester != null ? currentSemester : 1,
+                            gpa == null ? null : gpa.getSemesterGpa(),
+                            cgpa == null ? null : cgpa.getCgpa());
+                })
+                .sorted(Comparator.comparing(StaffAcademicRecordRow::regNo))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public StaffBulkAcademicResponse saveAcademicRecords(StaffBulkAcademicRequest request) {
+        if (request.semesterNumber() == null || request.semesterNumber() < 1 || request.semesterNumber() > 8) {
+            throw new IllegalArgumentException("Semester must be between 1 and 8.");
+        }
+        Integer semester = request.semesterNumber();
+
+        List<Long> studentIds = request.records().stream()
+                .map(StaffBulkAcademicItem::studentId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, Student> students = studentRepository.findAllById(studentIds).stream()
+                .collect(Collectors.toMap(Student::getStudentId, s -> s));
+        for (Long id : studentIds) {
+            if (!students.containsKey(id)) {
+                throw new ResourceNotFoundException("Student not found: " + id);
+            }
+        }
+
+        Map<Long, StudentSemesterGpa> gpasByStudent = gpaRepository
+                .findByStudentStudentIdInAndSemesterNumber(studentIds, semester).stream()
+                .collect(Collectors.toMap(g -> g.getStudent().getStudentId(), g -> g, (a, b) -> a));
+        Map<Long, StudentCgpa> cgpasByStudent = cgpaRepository.findByStudentStudentIdIn(studentIds).stream()
+                .collect(Collectors.toMap(c -> c.getStudent().getStudentId(), c -> c, (a, b) -> a));
+
+        List<StudentSemesterGpa> gpasToSave = new ArrayList<>();
+        List<StudentCgpa> cgpasToSave = new ArrayList<>();
+        int gpaCount = 0;
+        int cgpaCount = 0;
+
+        for (StaffBulkAcademicItem item : request.records()) {
+            Student student = students.get(item.studentId());
+            String regNo = regNoOf(student);
+
+            if (item.gpa() != null) {
+                validateAcademicValue(item.gpa(), "GPA", regNo);
+                StudentSemesterGpa gpa = gpasByStudent.get(student.getStudentId());
+                if (gpa == null) {
+                    gpa = new StudentSemesterGpa();
+                    gpa.setStudent(student);
+                    gpa.setSemesterNumber(semester);
+                    gpasByStudent.put(student.getStudentId(), gpa);
+                    gpasToSave.add(gpa);
+                }
+                gpa.setSemesterGpa(item.gpa());
+                gpaCount++;
+            }
+
+            if (item.cgpa() != null) {
+                validateAcademicValue(item.cgpa(), "CGPA", regNo);
+                StudentCgpa cgpa = cgpasByStudent.get(student.getStudentId());
+                if (cgpa == null) {
+                    cgpa = new StudentCgpa();
+                    cgpa.setStudent(student);
+                    cgpasByStudent.put(student.getStudentId(), cgpa);
+                    cgpasToSave.add(cgpa);
+                }
+                cgpa.setCgpa(item.cgpa());
+                cgpaCount++;
+            }
+        }
+
+        if (!gpasToSave.isEmpty()) {
+            gpaRepository.saveAll(gpasToSave);
+        }
+        if (!cgpasToSave.isEmpty()) {
+            cgpaRepository.saveAll(cgpasToSave);
+        }
+        return new StaffBulkAcademicResponse(gpaCount, cgpaCount);
+    }
+
+    @Transactional(readOnly = true)
+    public List<StaffActiveArrearsRow> getActiveArrears() {
+        List<StudentArrear> active = arrearRepository.findByArrearStatus(ArrearStatus.ACTIVE);
+        Map<Long, Student> students = studentRepository.findAll().stream()
+                .collect(Collectors.toMap(Student::getStudentId, s -> s));
+
+        Map<Long, StaffActiveArrearsRow> rows = new java.util.LinkedHashMap<>();
+        for (StudentArrear arrear : active) {
+            Student student = students.get(arrear.getStudent().getStudentId());
+            if (student == null) {
+                continue;
+            }
+            Long studentId = student.getStudentId();
+            StaffActiveArrearsRow existing = rows.computeIfAbsent(studentId, id -> {
+                Admission admission = student.getAdmission();
+                Integer currentSemester = admission == null ? null : admission.getCurrentSemester();
+                return new StaffActiveArrearsRow(
+                        studentId,
+                        regNoOf(student),
+                        student.getStudentName(),
+                        currentSemester != null ? currentSemester : 1,
+                        0,
+                        new ArrayList<>());
+            });
+            List<String> subjects = new ArrayList<>(existing.subjects());
+            subjects.add(arrear.getSubjectName());
+            rows.put(studentId, new StaffActiveArrearsRow(
+                    existing.studentId(),
+                    existing.regNo(),
+                    existing.name(),
+                    existing.semester(),
+                    existing.activeArrears() + 1,
+                    subjects));
+        }
+
+        return rows.values().stream()
+                .sorted(Comparator.comparing(StaffActiveArrearsRow::regNo))
+                .collect(Collectors.toList());
+    }
+
+    private void validateAcademicValue(BigDecimal value, String label, String regNo) {
+        if (value.compareTo(BigDecimal.ZERO) < 0
+                || value.compareTo(new BigDecimal("10")) > 0
+                || value.scale() > 2) {
+            throw new IllegalArgumentException("Invalid " + label + " for Register No. " + regNo + ".");
+        }
+    }
+
+    @Transactional(readOnly = true)
     public StaffStudentSummary getStudent(Long id) {
         Student student = getStudentOrThrow(id);
-        return toSummary(student, gpaRepository.findByStudentStudentIdOrderBySemesterNumberAsc(id));
+        return toSummary(student);
     }
 
     @Transactional(readOnly = true)
@@ -107,7 +259,6 @@ public class StaffService {
         StudentSemesterGpa gpa = new StudentSemesterGpa();
         gpa.setStudent(student);
         gpa.setSemesterNumber(request.semesterNumber());
-        gpa.setAcademicYear(request.academicYear());
         gpa.setSemesterGpa(request.semesterGpa());
         return toGpa(gpaRepository.save(gpa));
     }
@@ -118,7 +269,6 @@ public class StaffService {
                 .orElseThrow(() -> new IllegalArgumentException("GPA record not found."));
         assertGpaSemesterFree(gpa.getStudent().getStudentId(), request.semesterNumber(), gpaId);
         gpa.setSemesterNumber(request.semesterNumber());
-        gpa.setAcademicYear(request.academicYear());
         gpa.setSemesterGpa(request.semesterGpa());
         return toGpa(gpaRepository.save(gpa));
     }
@@ -134,7 +284,7 @@ public class StaffService {
     @Transactional(readOnly = true)
     public List<StaffCgpaRecord> getCgpa(Long studentId) {
         getStudentOrThrow(studentId);
-        return cgpaRepository.findByStudentStudentIdOrderByYearNumberAsc(studentId).stream()
+        return cgpaRepository.findByStudentStudentId(studentId).stream()
                 .map(this::toCgpa)
                 .collect(Collectors.toList());
     }
@@ -142,11 +292,11 @@ public class StaffService {
     @Transactional
     public StaffCgpaRecord addCgpa(Long studentId, StaffCgpaRequest request) {
         Student student = getStudentOrThrow(studentId);
-        assertCgpaYearFree(studentId, request.yearNumber(), null);
+        if (!cgpaRepository.findByStudentStudentId(studentId).isEmpty()) {
+            throw new IllegalArgumentException("CGPA already exists for this student.");
+        }
         StudentCgpa cgpa = new StudentCgpa();
         cgpa.setStudent(student);
-        cgpa.setYearNumber(request.yearNumber());
-        cgpa.setAcademicYear(request.academicYear());
         cgpa.setCgpa(request.cgpa());
         return toCgpa(cgpaRepository.save(cgpa));
     }
@@ -155,19 +305,8 @@ public class StaffService {
     public StaffCgpaRecord updateCgpa(Long cgpaId, StaffCgpaRequest request) {
         StudentCgpa cgpa = cgpaRepository.findById(cgpaId)
                 .orElseThrow(() -> new IllegalArgumentException("CGPA record not found."));
-        assertCgpaYearFree(cgpa.getStudent().getStudentId(), request.yearNumber(), cgpaId);
-        cgpa.setYearNumber(request.yearNumber());
-        cgpa.setAcademicYear(request.academicYear());
         cgpa.setCgpa(request.cgpa());
         return toCgpa(cgpaRepository.save(cgpa));
-    }
-
-    private void assertCgpaYearFree(Long studentId, Integer yearNumber, Long excludeCgpaId) {
-        cgpaRepository.findByStudentStudentIdAndYearNumber(studentId, yearNumber).ifPresent(existing -> {
-            if (excludeCgpaId == null || !existing.getCgpaId().equals(excludeCgpaId)) {
-                throw new IllegalArgumentException("CGPA already exists for Year " + yearNumber + ".");
-            }
-        });
     }
 
     @Transactional(readOnly = true)
@@ -231,10 +370,10 @@ public class StaffService {
     public StaffAcademicSummary getAcademicSummary(Long studentId) {
         getStudentOrThrow(studentId);
         List<StudentSemesterGpa> gpas = gpaRepository.findByStudentStudentIdOrderBySemesterNumberAsc(studentId);
-        List<StudentCgpa> cgpas = cgpaRepository.findByStudentStudentIdOrderByYearNumberAsc(studentId);
+        List<StudentCgpa> cgpas = cgpaRepository.findByStudentStudentId(studentId);
         List<StudentArrear> arrears = arrearRepository.findByStudentStudentIdOrderBySemesterNumberAsc(studentId);
         BigDecimal latestGpa = gpas.isEmpty() ? BigDecimal.ZERO : gpas.get(gpas.size() - 1).getSemesterGpa();
-        BigDecimal latestCgpa = cgpas.isEmpty() ? BigDecimal.ZERO : cgpas.get(cgpas.size() - 1).getCgpa();
+        BigDecimal latestCgpa = cgpas.isEmpty() ? null : cgpas.get(0).getCgpa();
         return new StaffAcademicSummary(
                 latestGpa,
                 latestCgpa,
@@ -298,7 +437,7 @@ public class StaffService {
                     cgpa.getStudent().getStudentId(),
                     cgpa.getStudent().getStudentName(),
                     "CGPA",
-                    "Year " + cgpa.getYearNumber() + " CGPA updated (" + cgpa.getCgpa() + ")",
+                    "CGPA updated (" + cgpa.getCgpa() + ")",
                     cgpa.getUpdatedAt() != null ? cgpa.getUpdatedAt() : cgpa.getCreatedAt()));
         }
     }
@@ -319,27 +458,32 @@ public class StaffService {
         }
     }
 
-    private StaffStudentSummary toSummary(Student student, List<StudentSemesterGpa> gpas) {
+    private StaffStudentSummary toSummary(Student student) {
         String department = deptName(student);
+        Admission admission = student.getAdmission();
+        Integer currentYear = admission == null ? null : admission.getCurrentYear();
+        Integer currentSemester = admission == null ? null : admission.getCurrentSemester();
+        String section = admission == null ? null : admission.getSection();
         return new StaffStudentSummary(
                 student.getStudentId(),
                 regNoOf(student),
                 student.getStudentName(),
                 department,
                 deptShort(department),
-                deriveYear(student, gpas),
-                deriveSection(student.getStudentId()),
+                currentYear != null ? currentYear : 1,
+                currentSemester != null ? currentSemester : 1,
+                section,
                 student.getStatus().name());
     }
 
     private StaffGpaRecord toGpa(StudentSemesterGpa gpa) {
         return new StaffGpaRecord(gpa.getGpaId(), gpa.getStudent().getStudentId(),
-                gpa.getSemesterNumber(), gpa.getAcademicYear(), gpa.getSemesterGpa());
+                gpa.getSemesterNumber(), gpa.getSemesterGpa());
     }
 
     private StaffCgpaRecord toCgpa(StudentCgpa cgpa) {
         return new StaffCgpaRecord(cgpa.getCgpaId(), cgpa.getStudent().getStudentId(),
-                cgpa.getYearNumber(), cgpa.getAcademicYear(), cgpa.getCgpa());
+                cgpa.getCgpa());
     }
 
     private StaffArrearRecord toArrear(StudentArrear arrear) {
@@ -369,29 +513,6 @@ public class StaffService {
             return false;
         }
         return true;
-    }
-
-    private Integer deriveYear(Student student, List<StudentSemesterGpa> gpas) {
-        if (gpas != null && !gpas.isEmpty()) {
-            int maxSemester = gpas.stream().mapToInt(StudentSemesterGpa::getSemesterNumber).max().orElse(0);
-            if (maxSemester > 0) {
-                return (maxSemester + 1) / 2;
-            }
-        }
-        if (student.getAdmission() != null && student.getAdmission().getBatch() != null) {
-            Integer startYear = firstYearOf(student.getAdmission().getBatch());
-            if (startYear != null) {
-                int year = LocalDate.now().getYear() - startYear + 1;
-                if (year >= 1) {
-                    return year;
-                }
-            }
-        }
-        return 1;
-    }
-
-    private String deriveSection(Long studentId) {
-        return studentId % 2 == 0 ? "A" : "B";
     }
 
     private String deptName(Student student) {
@@ -430,11 +551,6 @@ public class StaffService {
         return student.getRegisterNo() != null && !student.getRegisterNo().isBlank()
                 ? student.getRegisterNo()
                 : student.getApplicationNo();
-    }
-
-    private static Integer firstYearOf(String batch) {
-        Matcher matcher = YEAR_PATTERN.matcher(batch.toUpperCase());
-        return matcher.find() ? Integer.valueOf(matcher.group(1)) : null;
     }
 
     private static String titleCase(String value) {

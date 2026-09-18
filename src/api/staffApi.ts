@@ -2,12 +2,16 @@ import {
   StudentSummary,
   PersonalDetails,
   SemesterGpa,
-  YearCgpa,
+  Cgpa,
   Arrear,
   AttendanceData,
   AttendanceRecord,
   AcademicSummary,
   DashboardSummary,
+  AcademicRecordRow,
+  BulkAcademicSaveRequest,
+  BulkAcademicSaveResponse,
+  ActiveArrearRow,
 } from '../types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
@@ -152,20 +156,20 @@ export const staffApi = {
     });
   },
 
-  async getCgpa(studentId: number): Promise<YearCgpa[]> {
-    const data = await request<YearCgpa[]>(`${studentPath(studentId)}/cgpa`);
-    return [...data].sort((a, b) => a.yearNumber - b.yearNumber);
+  async getCgpa(studentId: number): Promise<Cgpa[]> {
+    const data = await request<Cgpa[]>(`${studentPath(studentId)}/cgpa`);
+    return [...data].sort((a, b) => a.cgpaId - b.cgpaId);
   },
 
-  async addCgpa(studentId: number, data: Omit<YearCgpa, 'cgpaId' | 'studentId'>): Promise<YearCgpa> {
-    return request<YearCgpa>(`${studentPath(studentId)}/cgpa`, {
+  async addCgpa(studentId: number, data: Omit<Cgpa, 'cgpaId' | 'studentId'>): Promise<Cgpa> {
+    return request<Cgpa>(`${studentPath(studentId)}/cgpa`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  async updateCgpa(cgpaId: number, data: Omit<YearCgpa, 'cgpaId' | 'studentId'>): Promise<YearCgpa> {
-    return request<YearCgpa>(`/api/staff/cgpa/${cgpaId}`, {
+  async updateCgpa(cgpaId: number, data: Omit<Cgpa, 'cgpaId' | 'studentId'>): Promise<Cgpa> {
+    return request<Cgpa>(`/api/staff/cgpa/${cgpaId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -196,5 +200,20 @@ export const staffApi = {
 
   async getAcademicSummary(studentId: number): Promise<AcademicSummary> {
     return request<AcademicSummary>(`${studentPath(studentId)}/academic-summary`);
+  },
+
+  async getAcademicRecords(semester: number): Promise<AcademicRecordRow[]> {
+    return request<AcademicRecordRow[]>(`/api/staff/academic-records?semester=${semester}`);
+  },
+
+  async saveAcademicRecords(data: BulkAcademicSaveRequest): Promise<BulkAcademicSaveResponse> {
+    return request<BulkAcademicSaveResponse>('/api/staff/academic-records/bulk', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getActiveArrears(): Promise<ActiveArrearRow[]> {
+    return request<ActiveArrearRow[]>('/api/staff/active-arrears');
   },
 };

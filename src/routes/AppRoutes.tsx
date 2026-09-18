@@ -4,6 +4,8 @@ import { MainLayout } from '../components/layout/MainLayout';
 import { Dashboard } from '../pages/Dashboard';
 import { StudentsList } from '../pages/students/StudentsList';
 import { StudentProfile } from '../pages/students/StudentProfile';
+import { AcademicRecords } from '../pages/academic/AcademicRecords';
+import { ActiveArrears } from '../pages/arrears/ActiveArrears';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -20,6 +22,8 @@ export const AppRoutes: React.FC = () => {
               <Route path="/students/:studentId/personal" element={<StudentProfile />} />
               <Route path="/students/:studentId/attendance" element={<StudentProfile />} />
               <Route path="/students/:studentId/academic" element={<StudentProfile />} />
+              <Route path="/academic-records" element={<AcademicRecords />} />
+              <Route path="/active-arrears" element={<ActiveArrears />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </MainLayout>

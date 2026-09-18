@@ -82,13 +82,15 @@ def main():
     procs = []
     try:
         procs.append(spawn("mvn -q spring-boot:run", BACKEND_DIR))
-        procs.append(spawn("npm run dev", ROOT))
-
         backend_ok = wait_until(BACKEND_URL, BACKEND_HEALTH_TIMEOUT, "backend")
-        frontend_ok = wait_until(FRONTEND_URL, FRONTEND_HEALTH_TIMEOUT, "frontend")
+        if not backend_ok:
+            print("Backend failed to start, shutting down.")
+            sys.exit(1)
 
-        if not (backend_ok and frontend_ok):
-            print("Startup incomplete, shutting down.")
+        procs.append(spawn("npm run dev", ROOT))
+        frontend_ok = wait_until(FRONTEND_URL, FRONTEND_HEALTH_TIMEOUT, "frontend")
+        if not frontend_ok:
+            print("Frontend failed to start, shutting down.")
             sys.exit(1)
 
         print("-" * 60)

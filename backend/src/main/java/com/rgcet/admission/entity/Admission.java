@@ -54,6 +54,15 @@ public class Admission {
     @Column(name = "date_of_admission")
     private LocalDate dateOfAdmission;
 
+    @Column(name = "current_year")
+    private Integer currentYear = 1;
+
+    @Column(name = "current_semester")
+    private Integer currentSemester = 1;
+
+    @Column(name = "section")
+    private String section;
+
     @PrePersist
     @PreUpdate
     public void normalizeTextFields() {

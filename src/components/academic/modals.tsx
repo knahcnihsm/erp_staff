@@ -10,26 +10,25 @@ import {
   Box,
   Divider,
 } from '@mui/material';
-import { SemesterGpa, YearCgpa, Arrear, ArrearStatus } from '../../types';
+import { SemesterGpa, Arrear, ArrearStatus } from '../../types';
 import { useThemeContext } from '../../context/ThemeContext';
+import { semesterOptions } from '../../utils/semesters';
 
 interface ModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-const semesterOptions = [1, 2, 3, 4, 5, 6, 7, 8];
-
 const titleCase = (value: string): string =>
   value.replace(/\b\w/g, (c) => c.toUpperCase());
 
-const validateGpaValue = (value: string): string | null => {
-  if (value.trim() === '') return 'GPA is required.';
+const validateGpaValue = (value: string, label = 'GPA'): string | null => {
+  if (value.trim() === '') return `${label} is required.`;
   const num = Number(value);
   if (Number.isNaN(num)) return 'Enter a valid number.';
-  if (num < 0 || num > 10) return 'GPA must be between 0 and 10.';
+  if (num < 0 || num > 10) return `${label} must be between 0 and 10.`;
   const decimals = value.split('.')[1];
-  if (decimals && decimals.length > 2) return 'GPA allows at most 2 decimal places.';
+  if (decimals && decimals.length > 2) return `${label} allows at most 2 decimal places.`;
   return null;
 };
 
@@ -103,7 +102,6 @@ const saveButtonStyle = (isDark: boolean) => ({
 
 export interface GpaFormState {
   semesterNumber: number;
-  academicYear: string;
   semesterGpa: string;
 }
 
@@ -112,7 +110,7 @@ export interface GpaModalProps extends ModalProps {
   initial?: SemesterGpa | null;
   existingSemesters: number[];
   saving: boolean;
-  onSubmit: (data: { semesterNumber: number; academicYear: string; semesterGpa: number }) => void;
+  onSubmit: (data: { semesterNumber: number; semesterGpa: number }) => void;
 }
 
 export const GpaModal: React.FC<GpaModalProps> = ({
@@ -128,15 +126,13 @@ export const GpaModal: React.FC<GpaModalProps> = ({
   const isDark = themeMode === 'dark';
   const [form, setForm] = useState<GpaFormState>({
     semesterNumber: 1,
-    academicYear: '',
     semesterGpa: '',
   });
-  const [errors, setErrors] = useState<{ semesterNumber?: string; academicYear?: string; semesterGpa?: string }>({});
+  const [errors, setErrors] = useState<{ semesterNumber?: string; semesterGpa?: string }>({});
 
   const reset = () => {
     setForm({
       semesterNumber: -1,
-      academicYear: '',
       semesterGpa: '',
     });
     setErrors({});
@@ -147,7 +143,6 @@ export const GpaModal: React.FC<GpaModalProps> = ({
       if (mode === 'edit' && initial) {
         setForm({
           semesterNumber: initial.semesterNumber,
-          academicYear: initial.academicYear,
           semesterGpa: String(initial.semesterGpa),
         });
       } else {
@@ -166,9 +161,6 @@ export const GpaModal: React.FC<GpaModalProps> = ({
     if (form.semesterNumber < 0) {
       nextErrors.semesterNumber = 'Semester is required.';
     }
-    if (!form.academicYear.trim()) {
-      nextErrors.academicYear = 'Academic Year is required.';
-    }
     const gpaError = validateGpaValue(form.semesterGpa);
     if (gpaError) {
       nextErrors.semesterGpa = gpaError;
@@ -178,7 +170,6 @@ export const GpaModal: React.FC<GpaModalProps> = ({
 
     onSubmit({
       semesterNumber: form.semesterNumber,
-      academicYear: form.academicYear.trim(),
       semesterGpa: Number(Number(form.semesterGpa).toFixed(2)),
     });
   };
@@ -217,15 +208,6 @@ export const GpaModal: React.FC<GpaModalProps> = ({
             ))}
           </TextField>
           <TextField
-            label="Academic Year"
-            placeholder="e.g. 2026-27"
-            value={form.academicYear}
-            onChange={(e) => setForm((prev) => ({ ...prev, academicYear: e.target.value }))}
-            error={Boolean(errors.academicYear)}
-            helperText={errors.academicYear}
-            sx={inputStyle(isDark)}
-          />
-          <TextField
             label="Semester GPA"
             type="number"
             inputProps={{ step: '0.01', min: 0, max: 10 }}
@@ -250,82 +232,38 @@ export const GpaModal: React.FC<GpaModalProps> = ({
   );
 };
 
-export interface CgpaFormState {
-  yearNumber: number;
-  academicYear: string;
-  cgpa: string;
-}
-
-export interface CgpaModalProps extends ModalProps {
-  mode: 'add' | 'edit';
-  initial?: YearCgpa | null;
-  existingYears: number[];
+export interface EditCgpaModalProps extends ModalProps {
+  initialValue: number | null;
   saving: boolean;
-  onSubmit: (data: { yearNumber: number; academicYear: string; cgpa: number }) => void;
+  onSubmit: (value: number) => void;
 }
 
-export const CgpaModal: React.FC<CgpaModalProps> = ({
+export const EditCgpaModal: React.FC<EditCgpaModalProps> = ({
   open,
   onClose,
-  mode,
-  initial,
-  existingYears,
+  initialValue,
   saving,
   onSubmit,
 }) => {
   const { mode: themeMode } = useThemeContext();
   const isDark = themeMode === 'dark';
-  const [form, setForm] = useState<CgpaFormState>({
-    yearNumber: -1,
-    academicYear: '',
-    cgpa: '',
-  });
-  const [errors, setErrors] = useState<{ yearNumber?: string; academicYear?: string; cgpa?: string }>({});
-
-  const reset = () => {
-    setForm({ yearNumber: -1, academicYear: '', cgpa: '' });
-    setErrors({});
-  };
+  const [value, setValue] = useState('');
+  const [error, setError] = useState<string | undefined>();
 
   useEffect(() => {
     if (open) {
-      if (mode === 'edit' && initial) {
-        setForm({
-          yearNumber: initial.yearNumber,
-          academicYear: initial.academicYear,
-          cgpa: String(initial.cgpa),
-        });
-      } else {
-        reset();
-      }
-      setErrors({});
+      setValue(initialValue != null ? String(initialValue) : '');
+      setError(undefined);
     }
-  }, [open, mode, initial]);
-
-  const availableYears = [1, 2, 3, 4].filter((y) =>
-    mode === 'edit' && initial ? true : !existingYears.includes(y)
-  );
+  }, [open, initialValue]);
 
   const handleSubmit = () => {
-    const nextErrors: typeof errors = {};
-    if (form.yearNumber < 0) {
-      nextErrors.yearNumber = 'Year is required.';
-    }
-    if (!form.academicYear.trim()) {
-      nextErrors.academicYear = 'Academic Year is required.';
-    }
-    const cgpaError = validateGpaValue(form.cgpa);
+    const cgpaError = validateGpaValue(value, 'CGPA');
     if (cgpaError) {
-      nextErrors.cgpa = cgpaError;
+      setError(cgpaError);
+      return;
     }
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
-
-    onSubmit({
-      yearNumber: form.yearNumber,
-      academicYear: form.academicYear.trim(),
-      cgpa: Number(Number(form.cgpa).toFixed(2)),
-    });
+    onSubmit(Number(Number(value).toFixed(2)));
   };
 
   return (
@@ -340,45 +278,20 @@ export const CgpaModal: React.FC<CgpaModalProps> = ({
           padding: '20px 24px 12px',
         }}
       >
-        {mode === 'add' ? 'Add Year CGPA' : 'Edit Year CGPA'}
+        Edit CGPA
       </DialogTitle>
       <Divider sx={{ borderColor: isDark ? '#334155' : '#E6ECF5' }} />
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, paddingTop: '16px' }}>
           <TextField
-            select
-            label="Year"
-            value={mode === 'add' ? (form.yearNumber >= 0 ? form.yearNumber : '') : form.yearNumber}
-            onChange={(e) => setForm((prev) => ({ ...prev, yearNumber: Number(e.target.value) }))}
-            error={Boolean(errors.yearNumber)}
-            helperText={errors.yearNumber}
-            disabled={mode === 'edit'}
-            sx={inputStyle(isDark)}
-          >
-            {availableYears.map((y) => (
-              <MenuItem key={y} value={y}>
-                Year {y}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            label="Academic Year"
-            placeholder="e.g. 2026-27"
-            value={form.academicYear}
-            onChange={(e) => setForm((prev) => ({ ...prev, academicYear: e.target.value }))}
-            error={Boolean(errors.academicYear)}
-            helperText={errors.academicYear}
-            sx={inputStyle(isDark)}
-          />
-          <TextField
             label="CGPA"
             type="number"
             inputProps={{ step: '0.01', min: 0, max: 10 }}
             placeholder="e.g. 8.60"
-            value={form.cgpa}
-            onChange={(e) => setForm((prev) => ({ ...prev, cgpa: e.target.value }))}
-            error={Boolean(errors.cgpa)}
-            helperText={errors.cgpa}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            error={Boolean(error)}
+            helperText={error}
             sx={inputStyle(isDark)}
           />
         </Box>
@@ -388,7 +301,7 @@ export const CgpaModal: React.FC<CgpaModalProps> = ({
           Cancel
         </Button>
         <Button onClick={handleSubmit} variant="contained" disableElevation disabled={saving} sx={saveButtonStyle(isDark)}>
-          {mode === 'add' ? 'Save CGPA' : 'Update CGPA'}
+          Save
         </Button>
       </DialogActions>
     </Dialog>

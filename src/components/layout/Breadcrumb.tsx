@@ -27,6 +27,18 @@ export const Breadcrumb: React.FC = () => {
         { label: 'Students', path: '/students' },
       ];
     }
+    if (path.startsWith('/academic-records')) {
+      return [
+        { label: 'Dashboard', path: '/dashboard' },
+        { label: 'Academic Records', path: undefined as string | undefined },
+      ];
+    }
+    if (path.startsWith('/active-arrears')) {
+      return [
+        { label: 'Dashboard', path: '/dashboard' },
+        { label: 'Active Arrears', path: undefined as string | undefined },
+      ];
+    }
     return [{ label: 'Dashboard', path: '/dashboard' }];
   };
 

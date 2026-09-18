@@ -7,7 +7,7 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
-import { LayoutDashboard, Users } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useThemeContext } from '../../context/ThemeContext';
 
@@ -53,6 +53,7 @@ export const Sidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) =
   const navItems = [
     { path: '/dashboard', label: 'DASHBOARD', icon: LayoutDashboard, active: location.pathname === '/dashboard' },
     { path: '/students', label: 'STUDENTS', icon: Users, active: location.pathname.startsWith('/students') },
+    { path: '/academic-records', label: 'ACADEMIC RECORDS', icon: BookOpen, active: location.pathname.startsWith('/academic-records') },
   ];
 
   return (

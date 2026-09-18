@@ -1,7 +1,9 @@
 package com.rgcet.admission.dto;
 
 import com.rgcet.admission.entity.ArrearStatus;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
@@ -21,6 +23,7 @@ public final class StaffDtos {
             String department,
             String deptShort,
             Integer year,
+            Integer semester,
             String section,
             String status) {
     }
@@ -47,15 +50,12 @@ public final class StaffDtos {
             Long gpaId,
             Long studentId,
             Integer semesterNumber,
-            String academicYear,
             BigDecimal semesterGpa) {
     }
 
     public record StaffCgpaRecord(
             Long cgpaId,
             Long studentId,
-            Integer yearNumber,
-            String academicYear,
             BigDecimal cgpa) {
     }
 
@@ -71,13 +71,10 @@ public final class StaffDtos {
 
     public record StaffGpaRequest(
             @NotNull @Positive Integer semesterNumber,
-            @NotBlank String academicYear,
             @NotNull BigDecimal semesterGpa) {
     }
 
     public record StaffCgpaRequest(
-            @NotNull @Positive Integer yearNumber,
-            @NotBlank String academicYear,
             @NotNull BigDecimal cgpa) {
     }
 
@@ -111,5 +108,39 @@ public final class StaffDtos {
             long activeStudents,
             long activeArrears,
             List<StaffRecentUpdate> recentUpdates) {
+    }
+
+    public record StaffAcademicRecordRow(
+            Long studentId,
+            String regNo,
+            String name,
+            Integer semester,
+            BigDecimal semesterGpa,
+            BigDecimal cgpa) {
+    }
+
+    public record StaffBulkAcademicItem(
+            @NotNull Long studentId,
+            BigDecimal gpa,
+            BigDecimal cgpa) {
+    }
+
+    public record StaffBulkAcademicRequest(
+            @NotNull @Positive Integer semesterNumber,
+            @NotEmpty @Valid List<StaffBulkAcademicItem> records) {
+    }
+
+    public record StaffBulkAcademicResponse(
+            int gpaRecords,
+            int cgpaRecords) {
+    }
+
+    public record StaffActiveArrearsRow(
+            Long studentId,
+            String regNo,
+            String name,
+            Integer semester,
+            Integer activeArrears,
+            List<String> subjects) {
     }
 }

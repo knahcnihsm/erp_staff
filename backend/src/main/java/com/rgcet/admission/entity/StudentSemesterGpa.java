@@ -37,9 +37,6 @@ public class StudentSemesterGpa {
     @Column(name = "semester_number", nullable = false)
     private Integer semesterNumber;
 
-    @Column(name = "academic_year", nullable = false)
-    private String academicYear;
-
     @Column(name = "semester_gpa", nullable = false)
     private BigDecimal semesterGpa;
 

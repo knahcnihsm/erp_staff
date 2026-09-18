@@ -147,7 +147,8 @@ export const StudentProfile: React.FC = () => {
               {student.regNo} · {student.deptShort}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '13px' }}>
-              Year {student.year} · Section {student.section} · {student.department}
+              Year {student.year} · Semester {student.semester} ·{' '}
+              {student.section ? `Section ${student.section}` : 'Section -'} · {student.department}
             </Typography>
           </Box>
         </Box>

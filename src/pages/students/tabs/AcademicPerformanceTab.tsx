@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Box, Typography, Tabs, Tab, useMediaQuery, useTheme } from '@mui/material';
-import { GraduationCap, Award, BookX } from 'lucide-react';
+import { Box, Typography, Tabs, Tab, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { GraduationCap, BookX, Pencil } from 'lucide-react';
 import { AppCard } from '../../../components/ui/AppCard';
 import { PermissionBadge } from '../../../components/common/PermissionBadge';
 import { PageSkeleton } from '../../../components/common/PageSkeleton';
@@ -8,12 +8,13 @@ import { ErrorState } from '../../../components/common/ErrorState';
 import { staffApi } from '../../../api/staffApi';
 import { AcademicSummary as AcademicSummaryType } from '../../../types';
 import { GpaSection } from '../../../components/academic/GpaSection';
-import { CgpaSection } from '../../../components/academic/CgpaSection';
 import { ArrearsSection } from '../../../components/academic/ArrearsSection';
+import { EditCgpaModal, EditCgpaModalProps } from '../../../components/academic/modals';
+import { useApp } from '../../../context/AppContext';
 import { useThemeContext } from '../../../context/ThemeContext';
 import { useSearchParams } from 'react-router-dom';
 
-type TabKey = 'gpa' | 'cgpa' | 'arrears';
+type TabKey = 'gpa' | 'arrears';
 
 interface AcademicPerformanceTabProps {
   studentId: number;
@@ -24,10 +25,11 @@ export const AcademicPerformanceTab: React.FC<AcademicPerformanceTabProps> = ({ 
   const isDark = mode === 'dark';
   const muiTheme = useTheme();
   const isDesktop = useMediaQuery(muiTheme.breakpoints.up('md'));
+  const { showSnackbar } = useApp();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const activeTab: TabKey = tabParam === 'cgpa' || tabParam === 'arrears' ? tabParam : 'gpa';
+  const activeTab: TabKey = tabParam === 'arrears' ? tabParam : 'gpa';
 
   const [summary, setSummary] = useState<AcademicSummaryType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,6 +60,27 @@ export const AcademicPerformanceTab: React.FC<AcademicPerformanceTabProps> = ({ 
     void loadSummary();
   };
 
+  const [cgpaModalOpen, setCgpaModalOpen] = useState(false);
+  const [cgpaSaving, setCgpaSaving] = useState(false);
+
+  const handleCgpaSubmit: EditCgpaModalProps['onSubmit'] = async (cgpa: number) => {
+    setCgpaSaving(true);
+    try {
+      const existing = await staffApi.getCgpa(studentId);
+      if (existing.length > 0) {
+        await staffApi.updateCgpa(existing[0].cgpaId, { cgpa });
+      } else {
+        await staffApi.addCgpa(studentId, { cgpa });
+      }
+      setCgpaModalOpen(false);
+      refreshSummary();
+    } catch (err) {
+      showSnackbar(err instanceof Error ? err.message : 'Operation failed.', 'error');
+    } finally {
+      setCgpaSaving(false);
+    }
+  };
+
   if (loading && !summary) {
     return <PageSkeleton variant="table" />;
   }
@@ -77,15 +100,14 @@ export const AcademicPerformanceTab: React.FC<AcademicPerformanceTabProps> = ({ 
   }
 
   const summaryCells = [
-    { label: 'Latest GPA', value: summary.latestGpa > 0 ? summary.latestGpa.toFixed(2) : '-', color: '#0284C7' },
-    { label: 'Latest CGPA', value: summary.latestCgpa > 0 ? summary.latestCgpa.toFixed(2) : '-', color: '#7C3AED' },
-    { label: 'Active Arrears', value: String(summary.activeArrears), color: '#DC2626' },
-    { label: 'Cleared Arrears', value: String(summary.clearedArrears), color: '#16A34A' },
+    { label: 'Latest GPA', value: summary.latestGpa > 0 ? summary.latestGpa.toFixed(2) : '-', color: '#0284C7', editable: false },
+    { label: 'CGPA', value: summary.latestCgpa != null ? summary.latestCgpa.toFixed(2) : '-', color: '#7C3AED', editable: true },
+    { label: 'Active Arrears', value: String(summary.activeArrears), color: '#DC2626', editable: false },
+    { label: 'Cleared Arrears', value: String(summary.clearedArrears), color: '#16A34A', editable: false },
   ];
 
   const tabItems = [
     { key: 'gpa' as TabKey, label: 'GPA', icon: GraduationCap },
-    { key: 'cgpa' as TabKey, label: 'CGPA', icon: Award },
     { key: 'arrears' as TabKey, label: 'Arrears', icon: BookX },
   ];
 
@@ -98,7 +120,7 @@ export const AcademicPerformanceTab: React.FC<AcademicPerformanceTabProps> = ({ 
               Academic Performance
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '13px', color: isDark ? '#8B949E' : '#667085' }}>
-              Manage GPA, CGPA and arrear records on behalf of the student.
+              Manage GPA and arrear records on behalf of the student.
             </Typography>
           </Box>
           <PermissionBadge variant="editable" />
@@ -116,9 +138,31 @@ export const AcademicPerformanceTab: React.FC<AcademicPerformanceTabProps> = ({ 
                 border: `1px solid ${isDark ? '#334155' : '#E6ECF5'}`,
               }}
             >
-              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '12px', color: 'text.secondary' }}>
-                {cell.label}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '12px', color: 'text.secondary' }}>
+                  {cell.label}
+                </Typography>
+                {cell.editable && (
+                  <IconButton
+                    size="small"
+                    onClick={() => setCgpaModalOpen(true)}
+                    title="Edit CGPA"
+                    sx={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: '8px',
+                      color: '#7C3AED',
+                      transition: 'all 180ms ease-in-out',
+                      '&:hover': {
+                        backgroundColor: 'rgba(124, 58, 237, 0.12)',
+                        transform: 'scale(1.12)',
+                      },
+                    }}
+                  >
+                    <Pencil size={14} />
+                  </IconButton>
+                )}
+              </Box>
               <Typography variant="h4" sx={{ fontWeight: 800, color: cell.color, marginTop: '2px' }}>
                 {cell.value}
               </Typography>
@@ -191,10 +235,17 @@ export const AcademicPerformanceTab: React.FC<AcademicPerformanceTabProps> = ({ 
 
         <Box sx={{ flexGrow: 1, minWidth: 0, width: '100%' }}>
           {activeTab === 'gpa' && <GpaSection studentId={studentId} onChanged={refreshSummary} />}
-          {activeTab === 'cgpa' && <CgpaSection studentId={studentId} onChanged={refreshSummary} />}
           {activeTab === 'arrears' && <ArrearsSection studentId={studentId} onChanged={refreshSummary} />}
         </Box>
       </Box>
+
+      <EditCgpaModal
+        open={cgpaModalOpen}
+        onClose={() => setCgpaModalOpen(false)}
+        initialValue={summary.latestCgpa != null ? summary.latestCgpa : null}
+        saving={cgpaSaving}
+        onSubmit={handleCgpaSubmit}
+      />
     </Box>
   );
 };

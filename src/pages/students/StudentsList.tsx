@@ -414,7 +414,9 @@ export const StudentsList: React.FC = () => {
                     <TableCell sx={thStyle}>Register No</TableCell>
                     <TableCell sx={thStyle}>Student Name</TableCell>
                     <TableCell sx={thStyle}>Department</TableCell>
-                    <TableCell sx={thStyle}>Year / Section</TableCell>
+                    <TableCell sx={thStyle}>Year</TableCell>
+                    <TableCell sx={thStyle}>Semester</TableCell>
+                    <TableCell sx={thStyle}>Section</TableCell>
                     <TableCell sx={thStyle}>Status</TableCell>
                     <TableCell align="right" sx={thStyle}>
                       Action
@@ -432,7 +434,13 @@ export const StudentsList: React.FC = () => {
                         {student.deptShort}
                       </TableCell>
                       <TableCell sx={{ ...tdStyle, fontWeight: 500, fontSize: '13px' }}>
-                        Year {student.year} · {student.section}
+                        <Box component="span" sx={{ marginRight: '6px' }}>Year {student.year}</Box>
+                      </TableCell>
+                      <TableCell sx={{ ...tdStyle, fontWeight: 500, fontSize: '13px' }}>
+                        Semester {student.semester}
+                      </TableCell>
+                      <TableCell sx={{ ...tdStyle, fontWeight: 500, fontSize: '13px' }}>
+                        {student.section ? `Section ${student.section}` : 'Section -'}
                       </TableCell>
                       <TableCell sx={tdStyle}>
                         <Chip

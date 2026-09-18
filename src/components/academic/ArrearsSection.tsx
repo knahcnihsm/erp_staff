@@ -59,9 +59,6 @@ export const ArrearsSection: React.FC<ArrearsSectionProps> = ({ studentId, onCha
     load();
   }, [studentId]);
 
-  const activeCount = records.filter((r) => r.arrearStatus === 'ACTIVE').length;
-  const clearedCount = records.filter((r) => r.arrearStatus === 'CLEARED').length;
-
   const openAdd = () => {
     setModalMode('add');
     setEditRecord(null);
@@ -158,41 +155,6 @@ export const ArrearsSection: React.FC<ArrearsSectionProps> = ({ studentId, onCha
           >
             Add Arrear
           </Button>
-        </Box>
-
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', marginBottom: '18px' }}>
-          <Box
-            sx={{
-              flex: '1 1 160px',
-              borderRadius: '12px',
-              padding: '14px',
-              backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : '#FEF3C7',
-              border: `1px solid ${isDark ? 'rgba(245, 158, 11, 0.3)' : '#F59E0B'}`,
-            }}
-          >
-            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '12px', color: isDark ? '#FBBF24' : '#B45309' }}>
-              Active Arrears
-            </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: isDark ? '#FBBF24' : '#B45309' }}>
-              {activeCount}
-            </Typography>
-          </Box>
-          <Box
-            sx={{
-              flex: '1 1 160px',
-              borderRadius: '12px',
-              padding: '14px',
-              backgroundColor: isDark ? 'rgba(22, 163, 74, 0.1)' : '#DCFCE7',
-              border: `1px solid ${isDark ? 'rgba(22, 163, 74, 0.3)' : '#16A34A'}`,
-            }}
-          >
-            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '12px', color: isDark ? '#4ADE80' : '#15803D' }}>
-              Cleared Arrears
-            </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: isDark ? '#4ADE80' : '#15803D' }}>
-              {clearedCount}
-            </Typography>
-          </Box>
         </Box>
 
         {records.length === 0 ? (

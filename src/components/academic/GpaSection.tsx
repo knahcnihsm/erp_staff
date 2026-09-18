@@ -153,9 +153,6 @@ export const GpaSection: React.FC<GpaSectionProps> = ({ studentId, onChanged }) 
                     Semester
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: '13px', color: isDark ? '#CBD5E1' : '#0B3D91', letterSpacing: '0.05em', padding: '16px 18px', borderBottom: `1px solid ${isDark ? '#334155' : '#D6E4F0'}`, backgroundColor: isDark ? '#0F172A' : '#EEF3FB' }}>
-                    Academic Year
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '13px', color: isDark ? '#CBD5E1' : '#0B3D91', letterSpacing: '0.05em', padding: '16px 18px', borderBottom: `1px solid ${isDark ? '#334155' : '#D6E4F0'}`, backgroundColor: isDark ? '#0F172A' : '#EEF3FB' }}>
                     Semester GPA
                   </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700, fontSize: '13px', color: isDark ? '#CBD5E1' : '#0B3D91', letterSpacing: '0.05em', padding: '16px 18px', borderBottom: `1px solid ${isDark ? '#334155' : '#D6E4F0'}`, backgroundColor: isDark ? '#0F172A' : '#EEF3FB' }}>
@@ -177,7 +174,6 @@ export const GpaSection: React.FC<GpaSectionProps> = ({ studentId, onChanged }) 
                     <TableCell sx={{ fontWeight: 600, color: isDark ? '#F1F5F9' : '#1E293B', padding: '14px 18px', borderBottom: `1px solid ${isDark ? '#1E293B' : '#EEF3FB'}` }}>
                       Semester {record.semesterNumber}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: isDark ? '#F1F5F9' : '#1E293B', padding: '14px 18px', borderBottom: `1px solid ${isDark ? '#1E293B' : '#EEF3FB'}` }}>{record.academicYear}</TableCell>
                     <TableCell sx={{ fontWeight: 800, color: '#0284C7', padding: '14px 18px', borderBottom: `1px solid ${isDark ? '#1E293B' : '#EEF3FB'}` }}>
                       {record.semesterGpa.toFixed(2)}
                     </TableCell>
